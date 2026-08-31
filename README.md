@@ -1,4 +1,4 @@
-# PDFClaro
+# PDF Extractor
 
 Aplicação web para extrair texto selecionável de arquivos PDF e exportar o resultado em TXT, JSON ou PDF.
 

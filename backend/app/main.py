@@ -22,7 +22,7 @@ from xml.sax.saxutils import escape
 MAX_FILE_SIZE = 25 * 1024 * 1024
 CHUNK_SIZE = 1024 * 1024
 
-app = FastAPI(title="PDFClaro API", version="1.0.0", docs_url="/api/docs")
+app = FastAPI(title="PDF Extractor API", version="1.0.0", docs_url="/api/docs")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -174,7 +174,7 @@ def export_pdf(document: ExtractedDocument) -> StreamingResponse:
         topMargin=20 * mm,
         bottomMargin=22 * mm,
         title=safe_stem(document.filename),
-        author="PDFClaro",
+        author="PDF Extractor",
     )
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
@@ -208,7 +208,7 @@ def export_pdf(document: ExtractedDocument) -> StreamingResponse:
     story = [
         Paragraph(escape(safe_stem(document.filename)), title_style),
         Paragraph(
-            f"Texto extraído pelo PDFClaro · {len(document.text.split()):,} palavras",
+            f"Texto extraído pelo PDF Extractor · {len(document.text.split()):,} palavras",
             meta_style,
         ),
         Spacer(1, 2 * mm),

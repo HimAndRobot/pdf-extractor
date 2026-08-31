@@ -125,7 +125,7 @@ export default function Home() {
       <header className="topbar">
         <button className="brand" onClick={reset} aria-label="Voltar ao início">
           <span className="brand-mark"><FileText size={22} strokeWidth={2.4} /></span>
-          <span>PDF<span>Claro</span></span>
+          <span>PDF <span>Extractor</span></span>
         </button>
       </header>
 

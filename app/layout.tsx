@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PDFClaro - PDF em texto",
+  title: "PDF Extractor",
   description: "Leitura e exportação de texto de documentos PDF.",
   icons: {
     icon: "/favicon.svg",

@@ -14,13 +14,13 @@ async function render() {
   );
 }
 
-test("server-renders the PDFClaro upload experience", async () => {
+test("server-renders the PDF Extractor upload experience", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>PDFClaro - PDF em texto<\/title>/i);
+  assert.match(html, /<title>PDF Extractor<\/title>/i);
   assert.match(html, /LEITURA INTELIGENTE DE DOCUMENTOS/);
   assert.match(html, /Envie um documento e transforme todas as páginas em texto\./);
   assert.match(html, /Arraste seu PDF para cá/);
