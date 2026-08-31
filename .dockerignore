@@ -1,0 +1,10 @@
+.git
+.next
+.vinext
+.wrangler
+dist
+node_modules
+npm-debug.log
+backend/__pycache__
+tmp
+output
