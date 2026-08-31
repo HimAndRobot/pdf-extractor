@@ -11,15 +11,15 @@ docker network create coolify
 docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 ```
 
-Abra `http://127.0.0.1:8080`. O arquivo `docker-compose.local.yml` publica a porta apenas no endereço local e não altera a configuração de produção.
+Abra `http://127.0.0.1:3000`. A API fica em `http://127.0.0.1:8000`.
 
 ## Publicar no Coolify
 
 1. Crie um recurso do tipo Docker Compose apontando para este repositório.
-2. Selecione o serviço `gateway` como serviço público.
-3. Configure o domínio para a porta 80 do `gateway`.
-4. Faça o deploy.
+2. Aponte o domínio do frontend para o serviço `web`, porta `3000`.
+3. Aponte o domínio da API para o serviço `api`, porta `8000`.
+4. Configure `NEXT_PUBLIC_API_URL` com a URL pública da API e faça o deploy.
 
-A rede externa `coolify` já existe nas instalações padrão. O gateway participa dela e de uma rede privada; `web` e `api` permanecem isolados e sem portas publicadas no host.
+A rede externa `coolify` já existe nas instalações padrão. Os serviços também compartilham uma rede privada entre si.
 
 Os PDFs são processados em memória e não são mantidos em disco. O limite por upload é de 25 MB. PDFs apenas com imagens exigem OCR e retornam uma mensagem explicativa.

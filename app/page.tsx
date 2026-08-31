@@ -26,6 +26,7 @@ type ExtractedDocument = {
 };
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
 function humanFileSize(bytes: number) {
   return bytes < 1024 * 1024
@@ -70,7 +71,7 @@ export default function Home() {
     const form = new FormData();
     form.append("file", file);
     try {
-      const response = await fetch("/api/extract", { method: "POST", body: form });
+      const response = await fetch(`${API_URL}/api/extract`, { method: "POST", body: form });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Não foi possível ler este PDF.");
       setResult(data);
@@ -100,7 +101,7 @@ export default function Home() {
     setExporting(format);
     setError("");
     try {
-      const response = await fetch(`/api/export/${format}`, {
+      const response = await fetch(`${API_URL}/api/export/${format}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(result),

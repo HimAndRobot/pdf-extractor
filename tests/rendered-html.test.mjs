@@ -35,8 +35,9 @@ test("keeps the production UI and API contract wired", async () => {
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /fetch\("\/api\/extract"/);
-  assert.match(page, /\/api\/export\/\$\{format\}/);
+  assert.match(page, /NEXT_PUBLIC_API_URL/);
+  assert.match(page, /\$\{API_URL\}\/api\/extract/);
+  assert.match(page, /\$\{API_URL\}\/api\/export\/\$\{format\}/);
   assert.match(page, /accept="application\/pdf,\.pdf"/);
   assert.match(page, /readOnly aria-label="Texto extraído do PDF"/);
   assert.match(layout, /lang="pt-BR"/);
