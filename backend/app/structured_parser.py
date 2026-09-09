@@ -10,6 +10,7 @@ from typing import Any
 
 import pdfplumber
 from .structured_geometry import parse_borderless
+from .structured_generic_geometry import parse_generic_borderless
 
 CANONICAL_FIELDS = ("produto", "lote", "data", "nota_fiscal", "data_fabricacao", "data_validade", "embalagem", "quantidade", "fornecedor", "transportadora", "cliente")
 THREE = ["especificacao", "parametro", "resultado"]
@@ -103,9 +104,81 @@ def metadata(text: str) -> dict[str, str | None]:
 
 def header_kind(row: list[Any]) -> str | None:
     h = [re.sub(r"[^a-z]", "", fold(clean(x) or "")) for x in row]
-    if len(h) >= 5 and {"item", "unidade", "resultado"}.issubset(h): return "five"
-    if len(h) >= 3 and {"especificacao", "parametro", "resultado"}.issubset(h): return "three"
+    if len(h) == 5 and len(set(h)) == 5 and set(h) == {"item", "unidade", "especificacoes", "resultado", "observacao"}: return "five"
+    if len(h) == 3 and len(set(h)) == 3 and set(h) == {"especificacao", "parametro", "resultado"}: return "three"
     return None
+
+
+def _generic_columns(row: list[Any]) -> list[str]:
+    columns: list[str] = []
+    used: set[str] = set()
+    for index, value in enumerate(row):
+        base = re.sub(r"[^a-z0-9]+", "_", fold(clean(value) or "")).strip("_") or f"coluna_{index + 1}"
+        label = base
+        suffix = 2
+        while label in used:
+            label = f"{base}_{suffix}"
+            suffix += 1
+        used.add(label)
+        columns.append(label)
+    return columns
+
+
+def _generic_table(rows: list[list[Any]]) -> dict[str, Any] | None:
+    """Preserve an unknown 3+ column table without assigning semantics."""
+    if not rows or max((len(row) for row in rows), default=0) < 3:
+        return None
+    normalized = [[clean(value) for value in row] for row in rows]
+    first = next((row for row in normalized if sum(value is not None for value in row) >= 2), None)
+    if first is None:
+        return None
+    first_index = normalized.index(first)
+    # A mostly textual first multi-cell row is a header. If it resembles data,
+    # use neutral column names and retain that row instead of dropping it.
+    marker_families = set()
+    for value in first:
+        normalized_value = fold(value or "")
+        for family, prefixes in {
+            "item": ("item",), "formula": ("formula",), "metodo": ("metod",),
+            "unidade": ("unid",), "espec": ("espec",), "observ": ("observ", "bserv"),
+            "parametro": ("param",), "resultado": ("result",), "propriedade": ("propr",),
+            "limite": ("limit",), "medido": ("medid",), "amostra": ("amostr",), "nota": ("nota",),
+        }.items():
+            if normalized_value.startswith(prefixes):
+                marker_families.add(family)
+                break
+    marker_families.discard("")
+    marker_cell_count = sum(1 for value in first if any(fold(value or "").startswith(prefix) for prefixes in {
+        "item": ("item",), "formula": ("formula",), "metodo": ("metod",), "unidade": ("unid",),
+        "espec": ("espec",), "observ": ("observ", "bserv"), "parametro": ("param",), "resultado": ("result",),
+        "propriedade": ("propr",), "limite": ("limit",), "medido": ("medid",), "amostra": ("amostr",), "nota": ("nota",),
+    }.values() for prefix in prefixes))
+    has_header = len(marker_families) >= 2 or (marker_cell_count >= 2 and marker_cell_count == sum(value is not None for value in first))
+    width = max(len(row) for row in normalized)
+    first = first + [None] * (width - len(first))
+    columns = _generic_columns(first) if has_header else [f"coluna_{index + 1}" for index in range(width)]
+    section: str | None = None
+    output: list[dict[str, str | None]] = []
+    header_signature = tuple(re.sub(r"[^a-z0-9]", "", fold(value or "")) for value in first)
+    for index, row in enumerate(normalized):
+        values = row + [None] * (len(columns) - len(row))
+        values = values[: len(columns)]
+        if has_header and index == first_index:
+            continue
+        if has_header and tuple(re.sub(r"[^a-z0-9]", "", fold(value or "")) for value in values) == header_signature:
+            continue
+        nonempty = [value for value in values if value is not None]
+        if len(nonempty) == 1 and is_section_heading(nonempty[0]):
+            # A section encountered after rows cannot safely be applied to
+            # those rows without returning multiple tables; leave the section
+            # unset rather than misattributing earlier data.
+            section = nonempty[0] if not output else None
+            continue
+        if nonempty:
+            output.append({column: values[position] for position, column in enumerate(columns)})
+    if not output:
+        return None
+    return {"section": section, "columns": columns, "rows": output}
 
 def parse(raw: bytes) -> tuple[int, str, dict[str, str | None], list[dict[str, Any]], list[str]]:
     warnings: list[str] = []; pages_text: list[str] = []; metadata_pages: list[str] = []; tables: list[dict[str, Any]] = []
@@ -130,7 +203,13 @@ def parse(raw: bytes) -> tuple[int, str, dict[str, str | None], list[dict[str, A
             recognized = False
             for table in found:
                 rows = table.extract(); kind = next((k for r in rows if r and (k := header_kind(r))), None)
-                if not kind: continue
+                if not kind:
+                    generic = _generic_table(rows)
+                    if generic:
+                        tables.append(generic)
+                        warnings.append("Tabela preservada com os rótulos originais; sem mapeamento semântico canônico.")
+                        recognized = True
+                    continue
                 recognized = True
                 cols = THREE if kind == "three" else FIVE
                 header_values = next([clean(x) for x in r] for r in rows if r and header_kind(r) == kind)
@@ -159,7 +238,7 @@ def parse(raw: bytes) -> tuple[int, str, dict[str, str | None], list[dict[str, A
                 if data_rows: tables.append({"section": current, "columns": cols, "rows": data_rows})
             if not recognized:
                 # Borderless fallback: header word x positions define column bands.
-                geo_tables, geo_warnings, _ = parse_borderless(page)
+                geo_tables, geo_warnings, geo_header_top = parse_borderless(page)
                 if geo_tables:
                     for gt in geo_tables:
                         hint = re.search(r"(?im)^\s*(CARACTERISTICAS[^\n]+)", text)
@@ -167,7 +246,24 @@ def parse(raw: bytes) -> tuple[int, str, dict[str, str | None], list[dict[str, A
                     tables.extend(geo_tables)
                 warnings.extend(geo_warnings)
                 if geo_tables:
+                    if geo_header_top is not None:
+                        try:
+                            metadata_pages[-1] = page.crop((0, 0, page.width, max(0, geo_header_top - 1))).extract_text() or ""
+                        except (AttributeError, TypeError, ValueError):
+                            pass
                     continue
+                generic_tables, generic_warnings, generic_header_top = parse_generic_borderless(page)
+                if generic_tables:
+                    if generic_header_top is not None:
+                        try:
+                            metadata_pages[-1] = page.crop((0, 0, page.width, max(0, generic_header_top - 1))).extract_text() or ""
+                        except (AttributeError, TypeError, ValueError):
+                            pass
+                    tables.extend(generic_tables)
+                    warnings.extend(generic_warnings)
+                    recognized = True
+                else:
+                    warnings.extend(generic_warnings)
             if found and not recognized:
                 warnings.append("Tabela encontrada sem cabeçalho canônico; linhas não foram inferidas automaticamente.")
         text = "\n\n".join(pages_text).strip()

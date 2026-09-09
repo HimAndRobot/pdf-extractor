@@ -26,13 +26,10 @@ type ExtractedDocument = {
 };
 
 type StructuredDocument = {
-  filename: string;
-  page_count: number;
-  schema_version: string;
-  document_type: string;
-  fields: Record<string, string | null>;
-  tables: { section: string | null; columns: string[]; rows: Array<Record<string, string | null>> }[];
-  warnings: string[];
+  produto: string | null; lote: string | null; data: string | null; nota_fiscal: string | null;
+  data_fabricacao: string | null; data_validade: string | null; embalagem: string | null;
+  quantidade: string | null; fornecedor: string | null; transportadora: string | null; cliente: string | null;
+  tabelas: { secao: string | null; linhas: Array<Record<string, string | null>> }[];
 };
 
 type ExtractionResult = ExtractedDocument | StructuredDocument;
@@ -82,9 +79,12 @@ export default function Home() {
   const [exporting, setExporting] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const structuredResult = result && "fields" in result ? result : null;
+  const structuredResult = result && "tabelas" in result ? result : null;
   const textResult = result && "text" in result ? result : null;
   const isStructured = Boolean(structuredResult);
+  const businessEntries = structuredResult
+    ? (Object.entries(structuredResult).filter(([key]) => key !== "tabelas") as [string, string | null][])
+    : [];
 
   const chooseFile = (selected?: File) => {
     if (!selected) return;
@@ -161,7 +161,7 @@ export default function Home() {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `${result.filename.replace(/\.pdf$/i, "")}.json`;
+      anchor.download = `${file?.name.replace(/\.pdf$/i, "") || "resultado"}.json`;
       anchor.click();
       URL.revokeObjectURL(url);
       return;
@@ -180,7 +180,7 @@ export default function Home() {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `${result.filename.replace(/\.pdf$/i, "")}.${format}`;
+      anchor.download = `${file?.name.replace(/\.pdf$/i, "") || "resultado"}.${format}`;
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (reason) {
@@ -254,17 +254,17 @@ export default function Home() {
             <div>
               <button className="back-link" onClick={reset}><ArrowLeft size={16} /> Novo documento</button>
               <h1>{isStructured ? "Laudo estruturado" : "Texto extraído"}</h1>
-              <p>{result.filename}</p>
+              <p>{file?.name || "Documento enviado"}</p>
             </div>
             <button className="new-file-button" onClick={reset}><RotateCcw size={17} /> Enviar outro PDF</button>
           </div>
 
           <div className="stats-row">
-            <div><span>PÁGINAS</span><strong>{result.page_count}</strong></div>
+            <div><span>{isStructured ? "CAMPOS" : "PÁGINAS"}</span><strong>{isStructured ? businessEntries.filter(([, value]) => value !== null).length : textResult?.page_count}</strong></div>
             {isStructured ? <>
-              <div><span>TIPO</span><strong className="stat-text">{structuredResult?.document_type || "—"}</strong></div>
-              <div><span>CAMPOS</span><strong>{structuredResult ? Object.keys(structuredResult.fields).length : 0}</strong></div>
-              <div className="success-stat"><span><Check size={13} /> {structuredResult?.warnings.length ? "COM AVISOS" : "CONCLUÍDO"}</span><strong>{structuredResult?.warnings.length ? structuredResult.warnings.length : "OK"}</strong></div>
+              <div><span>TABELAS</span><strong>{structuredResult?.tabelas.length || 0}</strong></div>
+              <div><span>LINHAS</span><strong>{structuredResult?.tabelas.reduce((count, table) => count + table.linhas.length, 0) || 0}</strong></div>
+              <div className="success-stat"><span><Check size={13} /> CONCLUÍDO</span><strong>OK</strong></div>
             </> : <>
               <div><span>PALAVRAS</span><strong>{textResult?.word_count.toLocaleString("pt-BR")}</strong></div>
               <div><span>CARACTERES</span><strong>{textResult?.character_count.toLocaleString("pt-BR")}</strong></div>
@@ -280,10 +280,9 @@ export default function Home() {
                 <button onClick={copyText}>{copied ? <Check size={15} /> : <Copy size={15} />}{copied ? "Copiado" : isStructured ? "Copiar JSON" : "Copiar texto"}</button>
               </div>
               {isStructured ? <div className="structured-content">
-                {structuredResult && Object.keys(structuredResult.fields).length ? <dl className="field-list">{Object.entries(structuredResult.fields).map(([key, value]) => <div key={key}><dt>{FIELD_LABELS[key] || key.replace(/_/g, " ")}</dt><dd>{value ?? "—"}</dd></div>)}</dl> : <p className="empty-state">Nenhum campo foi identificado.</p>}
-                {structuredResult?.tables.map((table, index) => <section className="table-section" key={`${table.section ?? "table"}-${index}`}><h2>{table.section || `Tabela ${index + 1}`}</h2><div className="table-scroll"><table><thead><tr>{table.columns.map((column) => <th key={column}>{COLUMN_LABELS[column] || column.replace(/_/g, " ")}</th>)}</tr></thead><tbody>{table.rows.map((row, rowIndex) => <tr key={rowIndex}>{table.columns.map((column) => <td key={column}>{row[column] ?? "—"}</td>)}</tr>)}</tbody></table></div></section>)}
+                {businessEntries.some(([, value]) => value !== null) ? <dl className="field-list">{businessEntries.map(([key, value]) => <div key={key}><dt>{FIELD_LABELS[key] || key.replace(/_/g, " ")}</dt><dd>{value ?? "—"}</dd></div>)}</dl> : <p className="empty-state">Nenhum campo foi identificado.</p>}
+                {structuredResult?.tabelas.map((table, index) => { const columns = Array.from(new Set(table.linhas.flatMap((row) => Object.keys(row)))); return <section className="table-section" key={`${table.secao ?? "table"}-${index}`}><h2>{table.secao || `Tabela ${index + 1}`}</h2><div className="table-scroll"><table><thead><tr>{columns.map((column) => <th key={column}>{COLUMN_LABELS[column] || column.replace(/_/g, " ")}</th>)}</tr></thead><tbody>{table.linhas.map((row, rowIndex) => <tr key={rowIndex}>{columns.map((column) => <td key={column}>{row[column] ?? "—"}</td>)}</tr>)}</tbody></table></div></section>; })}
                 {structuredResult && <details className="raw-json"><summary>Ver JSON bruto</summary><pre>{JSON.stringify(structuredResult, null, 2)}</pre></details>}
-                {structuredResult && structuredResult.warnings.length > 0 && <div className="warning-message" role="status"><strong>Observações</strong><ul>{structuredResult.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>}
               </div> : <textarea value={textResult?.text || ""} readOnly aria-label="Texto extraído do PDF" />}
             </article>
 

@@ -1,7 +1,7 @@
 import io
 import json
 import re
-import asyncio
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
 from urllib.parse import quote
@@ -10,7 +10,6 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
-from pypdf import PdfReader
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -19,12 +18,25 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer
 from xml.sax.saxutils import escape
-from .structured_parser import parse as parse_structured_pdf
+from .pdf_processing import ProcessingPool
+from .pdf_workers import PdfProcessingError
 
 MAX_FILE_SIZE = 25 * 1024 * 1024
 CHUNK_SIZE = 1024 * 1024
 
-app = FastAPI(title="PDF Extractor API", version="1.0.0", docs_url="/api/docs")
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    pool = ProcessingPool()
+    pool.start()
+    application.state.processing_pool = pool
+    try:
+        yield
+    finally:
+        await pool.shutdown()
+        application.state.processing_pool = None
+
+
+app = FastAPI(title="PDF Extractor API", version="1.0.0", docs_url="/api/docs", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -48,19 +60,23 @@ class ExtractedDocument(BaseModel):
 
 
 class StructuredTable(BaseModel):
-    section: str | None = None
-    columns: list[str]
-    rows: list[dict[str, str | None]]
+    secao: str | None = None
+    linhas: list[dict[str, str | None]]
 
 
 class StructuredDocument(BaseModel):
-    schema_version: str = "1.0"
-    filename: str
-    page_count: int
-    document_type: str = "laudo"
-    fields: dict[str, str | None]
-    tables: list[StructuredTable]
-    warnings: list[str]
+    produto: str | None = None
+    lote: str | None = None
+    data: str | None = None
+    nota_fiscal: str | None = None
+    data_fabricacao: str | None = None
+    data_validade: str | None = None
+    embalagem: str | None = None
+    quantidade: str | None = None
+    fornecedor: str | None = None
+    transportadora: str | None = None
+    cliente: str | None = None
+    tabelas: list[StructuredTable] = Field(default_factory=list)
 
 
 async def read_limited(upload: UploadFile) -> bytes:
@@ -70,6 +86,27 @@ async def read_limited(upload: UploadFile) -> bytes:
         if len(data) > MAX_FILE_SIZE:
             raise HTTPException(status_code=413, detail="O PDF ultrapassa o limite de 25 MB.")
     return bytes(data)
+
+
+async def process_upload(upload: UploadFile, kind: str) -> dict:
+    filename = upload.filename or "documento.pdf"
+    if not filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=415, detail="Envie um arquivo no formato PDF.")
+
+    async def loader() -> bytes:
+        raw = await read_limited(upload)
+        if not raw.startswith(b"%PDF-"):
+            raise HTTPException(status_code=415, detail="O arquivo enviado não é um PDF válido.")
+        return raw
+
+    try:
+        pool = getattr(app.state, "processing_pool", None)
+        if pool is None:
+            raise HTTPException(status_code=503, detail="O processamento ainda não foi iniciado.", headers={"Retry-After": "5"})
+        return await pool.process(kind, loader)
+    except PdfProcessingError as exc:
+        headers = {"Retry-After": "5"} if exc.status == 503 else None
+        raise HTTPException(status_code=exc.status, detail=exc.detail, headers=headers) from exc
 
 
 def safe_stem(filename: str) -> str:
@@ -92,43 +129,15 @@ def health() -> dict[str, str]:
 @app.post("/api/extract", response_model=ExtractedDocument)
 async def extract_pdf(file: Annotated[UploadFile, File(description="Arquivo PDF")]):
     filename = file.filename or "documento.pdf"
-    if not filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=415, detail="Envie um arquivo no formato PDF.")
-
-    raw = await read_limited(file)
-    if not raw.startswith(b"%PDF-"):
-        raise HTTPException(status_code=415, detail="O arquivo enviado não é um PDF válido.")
-
+    result = await process_upload(file, "text")
     try:
-        reader = PdfReader(io.BytesIO(raw), strict=False)
-        if reader.is_encrypted:
-            try:
-                if reader.decrypt("") == 0:
-                    raise HTTPException(status_code=422, detail="PDF protegido por senha não é suportado.")
-            except HTTPException:
-                raise
-            except Exception as exc:
-                raise HTTPException(status_code=422, detail="PDF protegido por senha não é suportado.") from exc
-
-        pages: list[PageContent] = []
-        for index, page in enumerate(reader.pages, start=1):
-            page_text = (page.extract_text() or "").strip()
-            pages.append(PageContent(page=index, text=page_text))
-    except HTTPException:
-        raise
+        pages = [PageContent(**page) for page in result["pages"]]
     except Exception as exc:
         raise HTTPException(status_code=422, detail="Não foi possível interpretar este PDF.") from exc
-
-    text = "\n\n".join(page.text for page in pages if page.text).strip()
-    if not text:
-        raise HTTPException(
-            status_code=422,
-            detail="Este PDF não possui texto selecionável. PDFs digitalizados precisam de OCR.",
-        )
-
+    text = result["text"]
     return ExtractedDocument(
         filename=filename,
-        page_count=len(pages),
+        page_count=result["page_count"],
         word_count=len(text.split()),
         character_count=len(text),
         text=text,
@@ -139,29 +148,21 @@ async def extract_pdf(file: Annotated[UploadFile, File(description="Arquivo PDF"
 @app.post("/api/extract/structured", response_model=StructuredDocument)
 async def extract_structured(file: Annotated[UploadFile, File(description="Arquivo PDF")]):
     filename = file.filename or "documento.pdf"
-    if not filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=415, detail="Envie um arquivo no formato PDF.")
-    raw = await read_limited(file)
-    if not raw.startswith(b"%PDF-"):
-        raise HTTPException(status_code=415, detail="O arquivo enviado não é um PDF válido.")
-    try:
-        # pypdf gives a stable password check; pdfplumber's exception varies by version.
-        probe = PdfReader(io.BytesIO(raw), strict=False)
-        if probe.is_encrypted and probe.decrypt("") == 0:
-            raise ValueError("password")
-        page_count, text, fields, tables, warnings = await asyncio.to_thread(parse_structured_pdf, raw)
-    except ValueError as exc:
-        if str(exc) == "password":
-            raise HTTPException(status_code=422, detail="PDF protegido por senha não é suportado.") from exc
-        raise HTTPException(status_code=422, detail="Não foi possível interpretar este PDF.") from exc
-    except Exception as exc:
-        raise HTTPException(status_code=422, detail="Não foi possível interpretar este PDF.") from exc
+    result = await process_upload(file, "structured")
+    page_count, text, fields, tables, warnings = result["page_count"], result["text"], result["fields"], result["tables"], result["warnings"]
     if not text:
         raise HTTPException(status_code=422, detail="Este PDF não possui texto selecionável. PDFs digitalizados precisam de OCR.")
-    return StructuredDocument(
-        schema_version="1.0", filename=filename, page_count=page_count,
-        document_type="laudo", fields=fields, tables=tables, warnings=warnings,
-    )
+    payload = {key: fields.get(key) for key in (
+        "produto", "lote", "data", "nota_fiscal", "data_fabricacao",
+        "data_validade", "embalagem", "quantidade", "fornecedor",
+        "transportadora", "cliente",
+    )}
+    payload["tabelas"] = [
+        {"secao": table.get("section"), "linhas": table.get("rows", [])}
+        for table in tables
+    ]
+    payload["tabelas"] = [StructuredTable(secao=x["secao"], linhas=x["linhas"]) for x in payload["tabelas"]]
+    return StructuredDocument(**payload)
 
 
 @app.post("/api/export/txt")

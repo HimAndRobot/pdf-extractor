@@ -46,6 +46,9 @@ test("keeps the production UI and API contract wired", async () => {
   assert.match(page, /aria-label="Modo de extração"/);
   assert.match(page, /new Blob\(\[JSON\.stringify\(result, null, 2\)\]/);
   assert.match(page, /AbortController/);
+  assert.match(page, /tabelas/);
+  assert.doesNotMatch(page, /structuredResult\.fields/);
+  assert.doesNotMatch(page, /structuredResult\.warnings/);
   assert.match(page, /accept="application\/pdf,\.pdf"/);
   assert.match(page, /readOnly aria-label="Texto extraído do PDF"/);
   assert.match(layout, /lang="pt-BR"/);

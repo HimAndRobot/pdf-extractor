@@ -22,7 +22,7 @@ Abra `http://127.0.0.1:3000`. A API fica em `http://127.0.0.1:8000`.
 
 A rede externa `coolify` já existe nas instalações padrão. Os serviços também compartilham uma rede privada entre si.
 
-Os PDFs são processados em memória e não são mantidos em disco. O limite por upload é de 25 MB. PDFs apenas com imagens exigem OCR e retornam uma mensagem explicativa.
+A extração é feita em memória e os arquivos não são persistidos pela aplicação. O framework pode usar armazenamento temporário durante o upload e o remove ao terminar a requisição. O limite por upload é de 25 MB. PDFs apenas com imagens exigem OCR e retornam uma mensagem explicativa.
 
 ## Testar a extração estruturada
 

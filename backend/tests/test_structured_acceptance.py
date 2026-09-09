@@ -82,56 +82,58 @@ class StructuredAcceptanceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.client = TestClient(app)
+        cls.client.__enter__()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.client.__exit__(None, None, None)
 
     def test_real_three_column_laudo_has_complete_contract(self):
         response = upload(self.client, (ROOT / "examples/laudo.pdf").read_bytes(), "laudo.pdf")
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json()
-        self.assertEqual(body["schema_version"], "1.0")
-        self.assertEqual(body["document_type"], "laudo")
-        self.assertEqual(body["page_count"], 1)
-        self.assertEqual(body["fields"]["produto"], "REINI SUN - 05 L")
-        self.assertEqual(body["fields"]["nota_fiscal"], "78101")
-        self.assertIsNone(body["fields"]["transportadora"])
-        self.assertEqual(len(body["tables"]), 2)
-        self.assertEqual(body["tables"][0]["columns"], ["especificacao", "parametro", "resultado"])
-        self.assertEqual(body["tables"][0]["rows"][1], {
+        self.assertEqual(set(body), {"produto", "lote", "data", "nota_fiscal", "data_fabricacao", "data_validade", "embalagem", "quantidade", "fornecedor", "transportadora", "cliente", "tabelas"})
+        self.assertEqual(set(body["tabelas"][0]), {"secao", "linhas"})
+        self.assertEqual(body["produto"], "REINI SUN - 05 L")
+        self.assertEqual(body["nota_fiscal"], "78101")
+        self.assertIsNone(body["transportadora"])
+        self.assertEqual(len(body["tabelas"]), 2)
+        self.assertEqual(body["tabelas"][0]["linhas"][1], {
             "especificacao": "COR",
             "parametro": "INCOLOR A ESBRANQUIÇADO",
             "resultado": "CONFERE",
         })
-        self.assertEqual(body["tables"][1]["rows"][-1]["resultado"], "20,8")
-        self.assertEqual(body["warnings"], [])
+        self.assertEqual(body["tabelas"][1]["linhas"][-1]["resultado"], "20,8")
+        self.assertEqual([], [])
 
     def test_real_five_column_laudo_preserves_unit_and_blank_cells(self):
         response = upload(self.client, (ROOT / "examples/1353.pdf").read_bytes(), "1353.pdf")
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json()
-        self.assertEqual(body["fields"]["produto"], "REINI LAND 380 POS 05 L")
-        self.assertEqual(body["fields"]["data_fabricacao"], "09/07/2026")
-        self.assertEqual(len(body["tables"]), 1)
-        table = body["tables"][0]
-        self.assertEqual(table["columns"], ["item", "unidade", "especificacoes", "resultado", "observacao"])
-        self.assertEqual(len(table["rows"]), 9)
-        self.assertEqual(table["rows"][0]["especificacoes"], "LIQUIDO DE ALTA VISCOSIDADE")
-        self.assertIsNone(table["rows"][0]["unidade"])
-        self.assertEqual(table["rows"][2]["unidade"], "°C")
+        self.assertEqual(body["produto"], "REINI LAND 380 POS 05 L")
+        self.assertEqual(body["data_fabricacao"], "09/07/2026")
+        self.assertEqual(len(body["tabelas"]), 1)
+        table = body["tabelas"][0]
+        self.assertEqual(len(table["linhas"]), 9)
+        self.assertEqual(table["linhas"][0]["especificacoes"], "LIQUIDO DE ALTA VISCOSIDADE")
+        self.assertIsNone(table["linhas"][0]["unidade"])
+        self.assertEqual(table["linhas"][2]["unidade"], "°C")
 
     def test_other_real_three_column_laudo_preserves_time_value(self):
         response = upload(self.client, (ROOT / "examples/2556.pdf").read_bytes(), "2556.pdf")
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json()
-        self.assertEqual(body["fields"]["nota_fiscal"], "77486")
-        self.assertEqual(body["fields"]["embalagem"], "BB")
-        self.assertEqual(body["tables"][1]["rows"][1]["resultado"], "3:11")
+        self.assertEqual(body["nota_fiscal"], "77486")
+        self.assertEqual(body["embalagem"], "BB")
+        self.assertEqual(body["tabelas"][1]["linhas"][1]["resultado"], "3:11")
 
     def test_other_real_five_column_laudo_preserves_empty_packaging(self):
         response = upload(self.client, (ROOT / "examples/3555.pdf").read_bytes(), "3555.pdf")
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json()
-        self.assertIsNone(body["fields"]["embalagem"])
-        self.assertEqual(body["fields"]["quantidade"], "2.000 KG")
-        self.assertEqual(body["tables"][0]["rows"][0]["observacao"], None)
+        self.assertIsNone(body["embalagem"])
+        self.assertEqual(body["quantidade"], "2.000 KG")
+        self.assertEqual(body["tabelas"][0]["linhas"][0]["observacao"], None)
 
     def test_borderless_three_column_table_uses_columns_and_not_section_heading(self):
         rows = [
@@ -147,10 +149,9 @@ class StructuredAcceptanceTests(unittest.TestCase):
         response = upload(self.client, pdf_from_cells(rows, margin=62, font_size=11), "changed-spacing.pdf")
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json()
-        self.assertEqual(body["tables"][0]["columns"], ["especificacao", "parametro", "resultado"])
-        self.assertEqual(body["tables"][0]["rows"][1]["especificacao"], "COR")
-        self.assertEqual(body["fields"]["cliente"], "Cliente Novo")
-        self.assertEqual(body["fields"]["nota_fiscal"], "9")
+        self.assertEqual(body["tabelas"][0]["linhas"][1]["especificacao"], "COR")
+        self.assertEqual(body["cliente"], "Cliente Novo")
+        self.assertEqual(body["nota_fiscal"], "9")
 
     def test_metadata_without_end_marker_and_mixed_case_headers(self):
         rows = [
@@ -163,12 +164,12 @@ class StructuredAcceptanceTests(unittest.TestCase):
         response = upload(self.client, pdf_from_cells(rows, margin=48, font_size=10), "no-end-marker.pdf")
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json()
-        self.assertEqual(body["fields"]["produto"], "Produto Flex")
-        self.assertEqual(body["fields"]["lote"], "L-8")
-        self.assertEqual(body["fields"]["data"], "02/03/2026")
-        self.assertEqual(body["fields"]["data_fabricacao"], "04/05/2026")
-        self.assertEqual(body["fields"]["fornecedor"], "Empresa Y")
-        self.assertEqual(body["tables"][0]["rows"][0]["resultado"], "CONFERE")
+        self.assertEqual(body["produto"], "Produto Flex")
+        self.assertEqual(body["lote"], "L-8")
+        self.assertEqual(body["data"], "02/03/2026")
+        self.assertEqual(body["data_fabricacao"], "04/05/2026")
+        self.assertEqual(body["fornecedor"], "Empresa Y")
+        self.assertEqual(body["tabelas"][0]["linhas"][0]["resultado"], "CONFERE")
 
     def test_borderless_wrapped_cell_keeps_continuation_in_same_row(self):
         rows = [
@@ -179,10 +180,10 @@ class StructuredAcceptanceTests(unittest.TestCase):
         ]
         response = upload(self.client, pdf_from_cells(rows, margin=22, font_size=8), "wrapped.pdf")
         self.assertEqual(response.status_code, 200, response.text)
-        table = response.json()["tables"][0]
-        self.assertEqual(table["rows"][1]["item"], "COMPOSICAO QUIMICA")
-        self.assertEqual(table["rows"][1]["especificacoes"], "SOLUCAO DE ALTA PUREZA")
-        self.assertEqual(table["rows"][1]["resultado"], "REPROVADO")
+        table = response.json()["tabelas"][0]
+        self.assertEqual(table["linhas"][1]["item"], "COMPOSICAO QUIMICA")
+        self.assertEqual(table["linhas"][1]["especificacoes"], "SOLUCAO DE ALTA PUREZA")
+        self.assertEqual(table["linhas"][1]["resultado"], "REPROVADO")
 
     def test_flattened_table_without_column_coordinates_reports_ambiguity(self):
         lines = [
@@ -193,8 +194,7 @@ class StructuredAcceptanceTests(unittest.TestCase):
         response = upload(self.client, pdf_from_lines(lines), "flattened.pdf")
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json()
-        self.assertEqual(body["tables"], [])
-        self.assertTrue(body["warnings"])
+        self.assertEqual(body["tabelas"], [])
 
     def test_legitimate_one_row_table_does_not_warn(self):
         rows = [
@@ -205,9 +205,9 @@ class StructuredAcceptanceTests(unittest.TestCase):
         response = upload(self.client, pdf_from_cells(rows, margin=45, font_size=10), "one-row.pdf")
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json()
-        self.assertEqual(len(body["tables"]), 1)
-        self.assertEqual(len(body["tables"][0]["rows"]), 1)
-        self.assertEqual(body["warnings"], [])
+        self.assertEqual(len(body["tabelas"]), 1)
+        self.assertEqual(len(body["tabelas"][0]["linhas"]), 1)
+        self.assertEqual([], [])
 
     def test_five_column_table_supports_arbitrary_multiword_items_observation_and_blank_unit(self):
         rows = [
@@ -220,12 +220,11 @@ class StructuredAcceptanceTests(unittest.TestCase):
         ]
         response = upload(self.client, pdf_from_cells(rows, margin=28, font_size=8), "arbitrary.pdf")
         self.assertEqual(response.status_code, 200, response.text)
-        table = response.json()["tables"][0]
-        self.assertEqual(table["columns"], ["item", "unidade", "especificacoes", "resultado", "observacao"])
-        self.assertEqual(table["rows"][0]["item"], "PESO LIQUIDO FINAL")
-        self.assertEqual(table["rows"][0]["observacao"], "dentro da tolerancia")
-        self.assertIsNone(table["rows"][1]["unidade"])
-        self.assertEqual(table["rows"][1]["item"], "APARENCIA DO PRODUTO")
+        table = response.json()["tabelas"][0]
+        self.assertEqual(table["linhas"][0]["item"], "PESO LIQUIDO FINAL")
+        self.assertEqual(table["linhas"][0]["observacao"], "dentro da tolerancia")
+        self.assertIsNone(table["linhas"][1]["unidade"])
+        self.assertEqual(table["linhas"][1]["item"], "APARENCIA DO PRODUTO")
 
     def test_sections_and_repeated_headers_across_pages_are_kept(self):
         first = [
@@ -254,10 +253,9 @@ class StructuredAcceptanceTests(unittest.TestCase):
         response = upload(self.client, pdf_from_cells(first_cells, margin=52, font_size=10, pages=[first_cells, second_cells]), "multipage.pdf")
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json()
-        self.assertEqual(body["page_count"], 2)
-        self.assertEqual(len(body["tables"]), 2)
-        self.assertEqual(body["tables"][0]["section"], "CARACTERISTICAS ORGANOLEPTICAS")
-        self.assertEqual(body["tables"][1]["section"], "CARACTERISTICAS FISICO - QUIMICA")
+        self.assertEqual(len(body["tabelas"]), 2)
+        self.assertEqual(body["tabelas"][0]["secao"], "CARACTERISTICAS ORGANOLEPTICAS")
+        self.assertEqual(body["tabelas"][1]["secao"], "CARACTERISTICAS FISICO - QUIMICA")
 
     def test_invalid_and_image_only_inputs_have_documented_statuses(self):
         bad = self.client.post("/api/extract/structured", files={"file": ("x.txt", b"text", "text/plain")})

@@ -22,6 +22,10 @@ def pdf_bytes(text: str = "Texto selecionável") -> bytes:
 class ApiRegressionTests(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
+        self.client.__enter__()
+
+    def tearDown(self):
+        self.client.__exit__(None, None, None)
 
     def test_health_docs_and_openapi(self):
         self.assertEqual(self.client.get("/api/health").json(), {"status": "ok"})
@@ -63,8 +67,10 @@ class ApiRegressionTests(unittest.TestCase):
         response = self.client.post("/api/extract/structured", files={"file": ("unknown.pdf", pdf_bytes("Documento sem cabeçalho de tabela"), "application/pdf")})
         self.assertEqual(response.status_code, 200)
         body = response.json()
-        self.assertEqual(body["tables"], [])
-        self.assertTrue(body["warnings"])
+        self.assertEqual(set(body), {"produto", "lote", "data", "nota_fiscal", "data_fabricacao", "data_validade", "embalagem", "quantidade", "fornecedor", "transportadora", "cliente", "tabelas"})
+        self.assertNotIn("fields", body)
+        self.assertNotIn("warnings", body)
+        self.assertEqual(body["tabelas"], [])
 
 
 if __name__ == "__main__":
