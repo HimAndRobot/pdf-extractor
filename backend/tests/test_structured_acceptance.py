@@ -115,9 +115,9 @@ class StructuredAcceptanceTests(unittest.TestCase):
         self.assertEqual(len(body["tabelas"]), 1)
         table = body["tabelas"][0]
         self.assertEqual(len(table["linhas"]), 9)
-        self.assertEqual(table["linhas"][0]["especificacoes"], "LIQUIDO DE ALTA VISCOSIDADE")
-        self.assertIsNone(table["linhas"][0]["unidade"])
-        self.assertEqual(table["linhas"][2]["unidade"], "°C")
+        self.assertEqual(table["linhas"][0]["metodo_especif"], "LIQUIDO DE ALTA VISCOSIDADE")
+        self.assertIsNone(table["linhas"][0]["formula_unid"])
+        self.assertEqual(table["linhas"][2]["formula_unid"], "°C")
 
     def test_other_real_three_column_laudo_preserves_time_value(self):
         response = upload(self.client, (ROOT / "examples/2556.pdf").read_bytes(), "2556.pdf")
@@ -133,7 +133,7 @@ class StructuredAcceptanceTests(unittest.TestCase):
         body = response.json()
         self.assertIsNone(body["embalagem"])
         self.assertEqual(body["quantidade"], "2.000 KG")
-        self.assertEqual(body["tabelas"][0]["linhas"][0]["observacao"], None)
+        self.assertEqual(body["tabelas"][0]["linhas"][0]["observacoes"], None)
 
     def test_borderless_three_column_table_uses_columns_and_not_section_heading(self):
         rows = [
@@ -182,8 +182,8 @@ class StructuredAcceptanceTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         table = response.json()["tabelas"][0]
         self.assertEqual(table["linhas"][1]["item"], "COMPOSICAO QUIMICA")
-        self.assertEqual(table["linhas"][1]["especificacoes"], "SOLUCAO DE ALTA PUREZA")
-        self.assertEqual(table["linhas"][1]["resultado"], "REPROVADO")
+        self.assertEqual(table["linhas"][1]["metodo_especif"], "SOLUCAO DE ALTA PUREZA")
+        self.assertEqual(table["linhas"][1]["analitico"], "REPROVADO")
 
     def test_flattened_table_without_column_coordinates_reports_ambiguity(self):
         lines = [
@@ -222,8 +222,8 @@ class StructuredAcceptanceTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         table = response.json()["tabelas"][0]
         self.assertEqual(table["linhas"][0]["item"], "PESO LIQUIDO FINAL")
-        self.assertEqual(table["linhas"][0]["observacao"], "dentro da tolerancia")
-        self.assertIsNone(table["linhas"][1]["unidade"])
+        self.assertEqual(table["linhas"][0]["observacoes"], "dentro da tolerancia")
+        self.assertIsNone(table["linhas"][1]["formula_unid"])
         self.assertEqual(table["linhas"][1]["item"], "APARENCIA DO PRODUTO")
 
     def test_sections_and_repeated_headers_across_pages_are_kept(self):

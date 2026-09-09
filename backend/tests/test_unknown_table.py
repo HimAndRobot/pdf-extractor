@@ -140,8 +140,8 @@ class UnknownTableRegressionTests(unittest.TestCase):
         self.assertEqual(body["cliente"], "Fazenda Aurora")
         self.assertEqual(len(body["tabelas"][0]["linhas"]), 2)
         self.assertEqual(body["tabelas"][0]["linhas"][0], {
-            "item": "ASPECTO", "formula": "LIQUIDO", "metodo": "VISUAL",
-            "especif": "CONFORME", "observacoes": "OK",
+            "item": "ASPECTO", "formula_unid": "LIQUIDO", "metodo_especif": "VISUAL",
+            "analitico": "CONFORME", "observacoes": "OK",
         })
 
     def test_unknown_three_column_table_is_preserved_with_dynamic_columns(self):
@@ -173,7 +173,7 @@ class UnknownTableRegressionTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200, response.text)
         table = response.json()["tabelas"][0]
-        self.assertIsNone(table["linhas"][0]["coluna_5"])
+        self.assertIsNone(table["linhas"][0]["observacoes"])
 
     def test_duplicate_source_headers_get_deterministic_suffixes(self):
         response = self.client.post(

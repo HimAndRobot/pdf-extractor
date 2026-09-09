@@ -52,11 +52,14 @@ const COLUMN_LABELS: Record<string, string> = {
   especificacao: "Especificação",
   parametro: "Parâmetro",
   resultado: "Resultado",
-  item: "Item",
-  unidade: "Unidade",
-  especificacoes: "Especificações",
-  observacao: "Observação",
+  item: "ITEM",
+  formula_unid: "FORMULA UNID.",
+  metodo_especif: "METODO ESPECIF.",
+  analitico: "ANALITICO",
+  observacoes: "OBSERVACOES",
 };
+
+const CANONICAL_FIVE_COLUMNS = ["item", "formula_unid", "metodo_especif", "analitico", "observacoes"];
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
@@ -281,7 +284,15 @@ export default function Home() {
               </div>
               {isStructured ? <div className="structured-content">
                 {businessEntries.some(([, value]) => value !== null) ? <dl className="field-list">{businessEntries.map(([key, value]) => <div key={key}><dt>{FIELD_LABELS[key] || key.replace(/_/g, " ")}</dt><dd>{value ?? "—"}</dd></div>)}</dl> : <p className="empty-state">Nenhum campo foi identificado.</p>}
-                {structuredResult?.tabelas.map((table, index) => { const columns = Array.from(new Set(table.linhas.flatMap((row) => Object.keys(row)))); return <section className="table-section" key={`${table.secao ?? "table"}-${index}`}><h2>{table.secao || `Tabela ${index + 1}`}</h2><div className="table-scroll"><table><thead><tr>{columns.map((column) => <th key={column}>{COLUMN_LABELS[column] || column.replace(/_/g, " ")}</th>)}</tr></thead><tbody>{table.linhas.map((row, rowIndex) => <tr key={rowIndex}>{columns.map((column) => <td key={column}>{row[column] ?? "—"}</td>)}</tr>)}</tbody></table></div></section>; })}
+                {structuredResult?.tabelas.map((table, index) => {
+                  const discoveredColumns = Array.from(new Set(table.linhas.flatMap((row) => Object.keys(row))));
+                  // Canonical five-column tables are positional: API keys are authoritative
+                  // even when the source PDF headers are broken or misleading.
+                  const columns = CANONICAL_FIVE_COLUMNS.every((column) => discoveredColumns.includes(column)) && discoveredColumns.length === CANONICAL_FIVE_COLUMNS.length
+                    ? CANONICAL_FIVE_COLUMNS
+                    : discoveredColumns;
+                  return <section className="table-section" key={`${table.secao ?? "table"}-${index}`}><h2>{table.secao || `Tabela ${index + 1}`}</h2><div className="table-scroll"><table><thead><tr>{columns.map((column) => <th key={column}>{COLUMN_LABELS[column] || column.replace(/_/g, " ")}</th>)}</tr></thead><tbody>{table.linhas.map((row, rowIndex) => <tr key={rowIndex}>{columns.map((column) => <td key={column}>{row[column] ?? "—"}</td>)}</tr>)}</tbody></table></div></section>;
+                })}
                 {structuredResult && <details className="raw-json"><summary>Ver JSON bruto</summary><pre>{JSON.stringify(structuredResult, null, 2)}</pre></details>}
               </div> : <textarea value={textResult?.text || ""} readOnly aria-label="Texto extraído do PDF" />}
             </article>

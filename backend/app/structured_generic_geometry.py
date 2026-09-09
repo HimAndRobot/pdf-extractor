@@ -52,7 +52,7 @@ def _header(line: list[dict[str, Any]]) -> tuple[list[str], list[float]] | None:
 
 
 def parse_generic_borderless(page: Any) -> tuple[list[dict[str, Any]], list[str], float | None]:
-    words = page.extract_words(keep_blank_chars=False, use_text_flow=False)
+    words = page.extract_words(keep_blank_chars=False, use_text_flow=False, extra_attrs=["fontname", "size"])
     lines = _lines(words)
     warnings: list[str] = []
     # Metadata rows can have three widely spaced labels but are not table headers.
@@ -82,7 +82,11 @@ def parse_generic_borderless(page: Any) -> tuple[list[dict[str, Any]], list[str]
     evidence_words = ("item", "nome", "unidade", "resultado", "observacao", "especific", "param", "atribut", "faixa", "leitura", "metodo", "formula")
     evidence = sum(any(token in _fold(label) for token in evidence_words) for label in header)
     neutral = evidence < 2
-    columns = [re.sub(r"[^a-z0-9]+", "_", _fold(x)).strip("_") or f"coluna_{i + 1}" for i, x in enumerate(header)] if not neutral else [f"coluna_{i + 1}" for i in range(len(header))]
+    # Five physical bands have a fixed contract, including unknown/broken
+    # labels. Other widths retain the generic source labels.
+    columns = (["item", "formula_unid", "metodo_especif", "analitico", "observacoes"]
+               if len(header) == 5 else
+               ([re.sub(r"[^a-z0-9]+", "_", _fold(x)).strip("_") or f"coluna_{i + 1}" for i, x in enumerate(header)] if not neutral else [f"coluna_{i + 1}" for i in range(len(header))]))
     # Duplicate/empty labels remain addressable and do not overwrite each other.
     used: set[str] = set()
     for i, col in enumerate(columns):

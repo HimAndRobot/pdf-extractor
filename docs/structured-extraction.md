@@ -21,7 +21,10 @@
       "linhas": [
         {
           "item": "...",
-          "unidade": null
+          "formula_unid": null,
+          "metodo_especif": null,
+          "analitico": null,
+          "observacoes": null
         }
       ]
     }
@@ -29,9 +32,9 @@
 }
 ```
 
-Datas, unidades, intervalos, números e resultados permanecem strings; vazios são `null`. Cada linha contém todas as chaves da tabela, inclusive as vazias. Em tabelas desconhecidas, cabeçalhos viram chaves normalizadas (`nome do item` → `nome_do_item`); vazios usam `coluna_N` e colisões recebem sufixos (`item`, `item_2`).
+Datas, unidades, intervalos, números e resultados permanecem strings; vazios são `null`. Cada linha contém todas as chaves da tabela, inclusive as colunas vazias. Em tabelas desconhecidas, exceto o layout canônico de cinco colunas, cabeçalhos viram chaves normalizadas (`nome do item` → `nome_do_item`); vazios usam `coluna_N` e colisões recebem sufixos (`item`, `item_2`).
 
-Os layouts canônicos são `especificacao`, `parametro`, `resultado` (3 colunas) e `item`, `unidade`, `especificacoes`, `resultado`, `observacao` (5 colunas). A detecção usa rótulos e geometria; títulos de seção são opcionais. PDFs achatados ou com geometria insuficiente podem gerar ambiguidade, então valide dados críticos.
+Os layouts canônicos são `especificacao`, `parametro`, `resultado` (3 colunas) e `item`, `formula_unid`, `metodo_especif`, `analitico`, `observacoes` (5 colunas). Na atribuição das cinco colunas, os valores são mapeados pela posição, nesta ordem; rótulos quebrados ou divergentes não mudam essa atribuição. Células ausentes permanecem `null`; o layout canônico de cinco colunas não usa nomes genéricos derivados dos rótulos. Para grades desalinhadas, a extração combina a geometria das células com os trechos de texto do cabeçalho, inclusive quando uma palavra atravessa uma separação; em tabelas sem bordas, as faixas são aprendidas da geometria do cabeçalho e verificadas contra as linhas de dados. Esses sinais podem ser insuficientes em PDFs achatados, digitalizados ou com sobreposição severa, portanto valide dados críticos.
 
 ## Exemplo de três colunas (`examples/2556.pdf`)
 
@@ -124,66 +127,66 @@ Os layouts canônicos são `especificacao`, `parametro`, `resultado` (3 colunas)
       "linhas": [
         {
           "item": "INSPEÇAO VISUAL",
-          "unidade": null,
-          "especificacoes": "LIQUIDO DE ALTA VISCOSIDADE",
-          "resultado": "OK",
-          "observacao": null
+          "formula_unid": null,
+          "metodo_especif": "LIQUIDO DE ALTA VISCOSIDADE",
+          "analitico": "OK",
+          "observacoes": null
         },
         {
           "item": "COR",
-          "unidade": null,
-          "especificacoes": "VERDE ESCURO",
-          "resultado": "OK",
-          "observacao": null
+          "formula_unid": null,
+          "metodo_especif": "VERDE ESCURO",
+          "analitico": "OK",
+          "observacoes": null
         },
         {
           "item": "TEMP. AMBIENTE",
-          "unidade": "°C",
-          "especificacoes": "15 A 30",
-          "resultado": "20,5",
-          "observacao": null
+          "formula_unid": "°C",
+          "metodo_especif": "15 A 30",
+          "analitico": "20,5",
+          "observacoes": null
         },
         {
           "item": "TEMP. PRODUTO",
-          "unidade": "°C",
-          "especificacoes": "15 A 30",
-          "resultado": "21,8",
-          "observacao": null
+          "formula_unid": "°C",
+          "metodo_especif": "15 A 30",
+          "analitico": "21,8",
+          "observacoes": null
         },
         {
           "item": "PONTO DE FUSAO",
-          "unidade": "°C",
-          "especificacoes": "NÃO APLICÁVEL",
-          "resultado": "-",
-          "observacao": null
+          "formula_unid": "°C",
+          "metodo_especif": "NÃO APLICÁVEL",
+          "analitico": "-",
+          "observacoes": null
         },
         {
           "item": "SOLUBILIDADE",
-          "unidade": "m/Vol",
-          "especificacoes": "NÃO APLICÁVEL",
-          "resultado": "-",
-          "observacao": null
+          "formula_unid": "m/Vol",
+          "metodo_especif": "NÃO APLICÁVEL",
+          "analitico": "-",
+          "observacoes": null
         },
         {
           "item": "PH",
-          "unidade": null,
-          "especificacoes": "2,0 - 2,5",
-          "resultado": "2,5",
-          "observacao": null
+          "formula_unid": null,
+          "metodo_especif": "2,0 - 2,5",
+          "analitico": "2,5",
+          "observacoes": null
         },
         {
           "item": "DENSIDADE",
-          "unidade": "g/ml",
-          "especificacoes": "1,04 - 1,07",
-          "resultado": "1,05",
-          "observacao": null
+          "formula_unid": "g/ml",
+          "metodo_especif": "1,04 - 1,07",
+          "analitico": "1,05",
+          "observacoes": null
         },
         {
           "item": "VISCOSIDADE",
-          "unidade": "s",
-          "especificacoes": "NAO APLICÁVEL",
-          "resultado": "-",
-          "observacao": null
+          "formula_unid": "s",
+          "metodo_especif": "NAO APLICÁVEL",
+          "analitico": "-",
+          "observacoes": null
         }
       ]
     }
