@@ -22,8 +22,11 @@ test("server-renders the PDF Extractor upload experience", async () => {
   const html = await response.text();
   assert.match(html, /<title>PDF Extractor<\/title>/i);
   assert.match(html, /LEITURA INTELIGENTE DE DOCUMENTOS/);
-  assert.match(html, /Envie um documento e transforme todas as páginas em texto\./);
+  assert.match(html, /Envie um documento e transforme todas as páginas em texto ou dados estruturados\./);
   assert.match(html, /Arraste seu PDF para cá/);
+  assert.match(html, /Laudo estruturado \(JSON\)/);
+  assert.match(html, /Texto completo/);
+  assert.match(html, /Modo de extração/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/);
   assert.doesNotMatch(html, /Seu PDF, em texto|editável|Sem cadastro|processados com segurança|Resultado em segundos/);
 });
@@ -36,8 +39,13 @@ test("keeps the production UI and API contract wired", async () => {
   ]);
 
   assert.match(page, /NEXT_PUBLIC_API_URL/);
-  assert.match(page, /\$\{API_URL\}\/api\/extract/);
+  assert.match(page, /endpoint = mode === "structured"/);
+  assert.match(page, /"\/api\/extract\/structured"/);
   assert.match(page, /\$\{API_URL\}\/api\/export\/\$\{format\}/);
+  assert.match(page, /Laudo estruturado \(JSON\)/);
+  assert.match(page, /aria-label="Modo de extração"/);
+  assert.match(page, /new Blob\(\[JSON\.stringify\(result, null, 2\)\]/);
+  assert.match(page, /AbortController/);
   assert.match(page, /accept="application\/pdf,\.pdf"/);
   assert.match(page, /readOnly aria-label="Texto extraído do PDF"/);
   assert.match(layout, /lang="pt-BR"/);

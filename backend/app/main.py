@@ -1,6 +1,7 @@
 import io
 import json
 import re
+import asyncio
 from pathlib import Path
 from typing import Annotated
 from urllib.parse import quote
@@ -18,6 +19,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer
 from xml.sax.saxutils import escape
+from .structured_parser import parse as parse_structured_pdf
 
 MAX_FILE_SIZE = 25 * 1024 * 1024
 CHUNK_SIZE = 1024 * 1024
@@ -45,20 +47,20 @@ class ExtractedDocument(BaseModel):
     pages: list[PageContent] = Field(default_factory=list, max_length=10_000)
 
 
-def safe_stem(filename: str) -> str:
-    stem = Path(filename).stem
-    cleaned = re.sub(r"[^\w\-. ]+", "", stem, flags=re.UNICODE).strip(" .")
-    return cleaned[:120] or "documento"
+class StructuredTable(BaseModel):
+    section: str | None = None
+    columns: list[str]
+    rows: list[dict[str, str | None]]
 
 
-def attachment_header(filename: str) -> dict[str, str]:
-    ascii_name = filename.encode("ascii", "ignore").decode() or "documento"
-    return {
-        "Content-Disposition": (
-            f'attachment; filename="{ascii_name}"; '
-            f"filename*=UTF-8''{quote(filename)}"
-        )
-    }
+class StructuredDocument(BaseModel):
+    schema_version: str = "1.0"
+    filename: str
+    page_count: int
+    document_type: str = "laudo"
+    fields: dict[str, str | None]
+    tables: list[StructuredTable]
+    warnings: list[str]
 
 
 async def read_limited(upload: UploadFile) -> bytes:
@@ -70,9 +72,21 @@ async def read_limited(upload: UploadFile) -> bytes:
     return bytes(data)
 
 
+def safe_stem(filename: str) -> str:
+    stem = Path(filename).stem
+    cleaned = re.sub(r"[^\w\-. ]+", "", stem, flags=re.UNICODE).strip(" .")
+    return cleaned[:120] or "documento"
+
+
+def attachment_header(filename: str) -> dict[str, str]:
+    ascii_name = filename.encode("ascii", "ignore").decode() or "documento"
+    return {"Content-Disposition": f'attachment; filename="{ascii_name}"; filename*=UTF-8\'\'{quote(filename)}'}
+
+
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
 
 
 @app.post("/api/extract", response_model=ExtractedDocument)
@@ -119,6 +133,34 @@ async def extract_pdf(file: Annotated[UploadFile, File(description="Arquivo PDF"
         character_count=len(text),
         text=text,
         pages=pages,
+    )
+
+
+@app.post("/api/extract/structured", response_model=StructuredDocument)
+async def extract_structured(file: Annotated[UploadFile, File(description="Arquivo PDF")]):
+    filename = file.filename or "documento.pdf"
+    if not filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=415, detail="Envie um arquivo no formato PDF.")
+    raw = await read_limited(file)
+    if not raw.startswith(b"%PDF-"):
+        raise HTTPException(status_code=415, detail="O arquivo enviado não é um PDF válido.")
+    try:
+        # pypdf gives a stable password check; pdfplumber's exception varies by version.
+        probe = PdfReader(io.BytesIO(raw), strict=False)
+        if probe.is_encrypted and probe.decrypt("") == 0:
+            raise ValueError("password")
+        page_count, text, fields, tables, warnings = await asyncio.to_thread(parse_structured_pdf, raw)
+    except ValueError as exc:
+        if str(exc) == "password":
+            raise HTTPException(status_code=422, detail="PDF protegido por senha não é suportado.") from exc
+        raise HTTPException(status_code=422, detail="Não foi possível interpretar este PDF.") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail="Não foi possível interpretar este PDF.") from exc
+    if not text:
+        raise HTTPException(status_code=422, detail="Este PDF não possui texto selecionável. PDFs digitalizados precisam de OCR.")
+    return StructuredDocument(
+        schema_version="1.0", filename=filename, page_count=page_count,
+        document_type="laudo", fields=fields, tables=tables, warnings=warnings,
     )
 
 
