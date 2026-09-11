@@ -10,7 +10,7 @@ from reportlab.pdfgen import canvas
 from app.main import app
 
 
-FIVE_KEYS = ["item", "formula_unid", "metodo_especif", "analitico", "observacoes"]
+FIVE_KEYS = ["item", "unidade", "especificacoes", "resultado", "observacoes"]
 OLD_HEADERS = ["ITEM", "UNIDADE", "ESPECIFICACAO", "RESULTADO", "OBSERVACAO"]
 X = [40, 150, 260, 370, 480]
 
@@ -82,7 +82,7 @@ class PositionalEdgeCaseTests(unittest.TestCase):
             "sparse-borderless.pdf",
         )
         self.assertEqual(list(rows[0]), FIVE_KEYS)
-        self.assertEqual(rows[0], {"item": "COR", "formula_unid": None, "metodo_especif": None, "analitico": "OK", "observacoes": None})
+        self.assertEqual(rows[0], {"item": "COR", "unidade": None, "especificacoes": None, "resultado": "OK", "observacoes": None})
 
     def test_alphabetic_item_matching_header_is_data(self):
         rows = _extract(
@@ -103,7 +103,7 @@ class PositionalEdgeCaseTests(unittest.TestCase):
             "alpha-without-header.pdf",
         )
         self.assertEqual(len(rows), 2)
-        self.assertEqual(rows[0], {"item": "COR", "formula_unid": "kg", "metodo_especif": "VISUAL", "analitico": "CONFORME", "observacoes": "OK"})
+        self.assertEqual(rows[0], {"item": "COR", "unidade": "kg", "especificacoes": "VISUAL", "resultado": "CONFORME", "observacoes": "OK"})
         self.assertEqual(list(rows[0]), FIVE_KEYS)
 
     def test_reordered_old_labels_do_not_change_physical_mapping(self):
@@ -119,7 +119,7 @@ class PositionalEdgeCaseTests(unittest.TestCase):
             pdf.drawString(X[column], 680, value)
         pdf.save()
         rows = _extract(out.getvalue(), "reordered-labels.pdf")
-        self.assertEqual(rows[0], {"item": "OBS", "formula_unid": "OK", "metodo_especif": "COR", "analitico": "kg", "observacoes": "AMOSTRA"})
+        self.assertEqual(rows[0], {"item": "OBS", "unidade": "OK", "especificacoes": "COR", "resultado": "kg", "observacoes": "AMOSTRA"})
         self.assertEqual(list(rows[0]), FIVE_KEYS)
 
     def test_regular_same_font_split_header_keeps_all_three_rows_and_metadata(self):
@@ -133,9 +133,9 @@ class PositionalEdgeCaseTests(unittest.TestCase):
         self.assertEqual(body["cliente"], "Cliente Mesmo Fonte")
         rows = body["tabelas"][0]["linhas"]
         self.assertEqual(rows, [
-            {"item": "COR", "formula_unid": "kg", "metodo_especif": "VISUAL", "analitico": "11", "observacoes": "OK"},
-            {"item": "ASPECTO", "formula_unid": None, "metodo_especif": "FISICO", "analitico": "APROVADO", "observacoes": None},
-            {"item": "TEXTURA", "formula_unid": "g", "metodo_especif": "SENSORIAL", "analitico": "CONFORME", "observacoes": None},
+            {"item": "COR", "unidade": "kg", "especificacoes": "VISUAL", "resultado": "11", "observacoes": "OK"},
+            {"item": "ASPECTO", "unidade": None, "especificacoes": "FISICO", "resultado": "APROVADO", "observacoes": None},
+            {"item": "TEXTURA", "unidade": "g", "especificacoes": "SENSORIAL", "resultado": "CONFORME", "observacoes": None},
         ])
         self.assertEqual(list(rows[0]), FIVE_KEYS)
 

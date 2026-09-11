@@ -15,7 +15,7 @@ from reportlab.pdfgen import canvas
 from app.structured_parser import parse
 
 
-FIVE_KEYS = ["item", "formula_unid", "metodo_especif", "analitico", "observacoes"]
+FIVE_KEYS = ["item", "unidade", "especificacoes", "resultado", "observacoes"]
 
 
 def _grid(pdf, xs, top, row_height, rows, *, multiline_header=False):
@@ -140,8 +140,8 @@ class PositionalColumnTests(unittest.TestCase):
         pages, _, _, tables, _ = parse(malformed_ruled_five_pdf())
         self.assertEqual(pages, 1)
         self.assertEqual(tables[0]["rows"], [
-            {"item": "COR", "formula_unid": "FORMULA A", "metodo_especif": "VISUAL", "analitico": "APROVADO", "observacoes": "OK"},
-            {"item": "ASPECTO", "formula_unid": None, "metodo_especif": "FISICO", "analitico": "CONFORME", "observacoes": None},
+            {"item": "COR", "unidade": "FORMULA A", "especificacoes": "VISUAL", "resultado": "APROVADO", "observacoes": "OK"},
+            {"item": "ASPECTO", "unidade": None, "especificacoes": "FISICO", "resultado": "CONFORME", "observacoes": None},
         ])
         self.assertEqual(tables[0]["columns"], FIVE_KEYS)
 
@@ -149,7 +149,7 @@ class PositionalColumnTests(unittest.TestCase):
         _, _, _, tables, _ = parse(malformed_borderless_five_pdf())
         self.assertEqual(tables[0]["columns"], FIVE_KEYS)
         self.assertEqual(len(tables[0]["rows"]), 3)
-        self.assertIsNone(tables[0]["rows"][1]["formula_unid"])
+        self.assertIsNone(tables[0]["rows"][1]["unidade"])
         self.assertIsNone(tables[0]["rows"][1]["observacoes"])
 
     def test_three_column_contract_is_unchanged(self):
@@ -161,12 +161,12 @@ class PositionalColumnTests(unittest.TestCase):
         _, _, _, tables, _ = parse(three_then_two_header_borderless_pdf())
         self.assertEqual(tables[0]["columns"], FIVE_KEYS)
         self.assertEqual(len(tables[0]["rows"]), 3)
-        self.assertEqual(tables[0]["rows"][0], {"item": "COR", "formula_unid": "kg", "metodo_especif": "VISUAL", "analitico": "11", "observacoes": "OK"})
+        self.assertEqual(tables[0]["rows"][0], {"item": "COR", "unidade": "kg", "especificacoes": "VISUAL", "resultado": "11", "observacoes": "OK"})
         self.assertEqual(tables[0]["rows"][1]["observacoes"], "OBS")
 
     def test_five_alphabetic_values_are_data_and_header_order_is_ignored(self):
         _, _, _, tables, _ = parse(reordered_header_ruled_pdf())
-        self.assertEqual(tables[0]["rows"][0], {"item": "OK", "formula_unid": "CONFORME", "metodo_especif": "COR", "analitico": "VISUAL", "observacoes": "kg"})
+        self.assertEqual(tables[0]["rows"][0], {"item": "OK", "unidade": "CONFORME", "especificacoes": "COR", "resultado": "VISUAL", "observacoes": "kg"})
 
     def test_clipped_short_items_and_metadata_boundaries(self):
         pages, _, fields, tables, _ = parse(clipped_short_items_with_metadata_pdf())
@@ -174,7 +174,7 @@ class PositionalColumnTests(unittest.TestCase):
         self.assertEqual(fields["transportadora"], "PROPRIO")
         self.assertEqual(fields["quantidade"], "50")
         self.assertEqual([row["item"] for row in tables[0]["rows"]], ["COR", "ASPECTO", "DENSIDADE"])
-        self.assertEqual(tables[0]["rows"][2]["analitico"], "1,1")
+        self.assertEqual(tables[0]["rows"][2]["resultado"], "1,1")
 
 
 if __name__ == "__main__":

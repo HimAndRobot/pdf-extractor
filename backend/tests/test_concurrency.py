@@ -79,7 +79,7 @@ class ConcurrencyTests(unittest.TestCase):
         self.assertTrue(all(status == 200 for status, _ in results))
         for _, body in results:
             self.assertEqual(set(body), {
-                "produto", "lote", "data", "nota_fiscal", "data_fabricacao",
+                "produto", "lote", "data_le", "nota_fiscal", "data_fabricacao",
                 "data_validade", "embalagem", "quantidade", "fornecedor",
                 "transportadora", "cliente", "tabelas",
             })

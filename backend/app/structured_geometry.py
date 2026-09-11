@@ -14,7 +14,7 @@ from typing import Any
 import pdfplumber
 
 THREE = ["especificacao", "parametro", "resultado"]
-FIVE = ["item", "formula_unid", "metodo_especif", "analitico", "observacoes"]
+FIVE = ["item", "unidade", "especificacoes", "resultado", "observacoes"]
 _OLD_FIVE = ["item", "unidade", "especificacoes", "resultado", "observacao"]
 _SECTION = re.compile(r"(?:caracter(?:isticas|ística)|categorias?|ensaios?|an[aá]lises?)\s*[:\-]?\s*(?:organoleptic|organoleptica|fisico|quimic)", re.I)
 _FOOTER = re.compile(r"(?:assinatura|respons[aá]vel|elaborado por|conferido por|nome\s*[:.]|cargo\s*[:.])", re.I)

@@ -67,8 +67,8 @@ class StructuredTable(BaseModel):
 class StructuredDocument(BaseModel):
     produto: str | None = None
     lote: str | None = None
-    data: str | None = None
     nota_fiscal: str | None = None
+    data_le: str | None = None
     data_fabricacao: str | None = None
     data_validade: str | None = None
     embalagem: str | None = None
@@ -153,7 +153,7 @@ async def extract_structured(file: Annotated[UploadFile, File(description="Arqui
     if not text:
         raise HTTPException(status_code=422, detail="Este PDF não possui texto selecionável. PDFs digitalizados precisam de OCR.")
     payload = {key: fields.get(key) for key in (
-        "produto", "lote", "data", "nota_fiscal", "data_fabricacao",
+        "produto", "lote", "data_le", "nota_fiscal", "data_fabricacao",
         "data_validade", "embalagem", "quantidade", "fornecedor",
         "transportadora", "cliente",
     )}

@@ -23,7 +23,7 @@ class MetadataTests(unittest.TestCase):
         self.assertEqual(result["produto"], "Válido")
 
     def test_key_normalizes_accents_and_punctuation(self):
-        self.assertEqual(key("Data de fabricação:"), "data_fabricacao")
+        self.assertEqual(key("Data:"), "data_le")
         self.assertEqual(key("N.F."), "nota_fiscal")
 
 

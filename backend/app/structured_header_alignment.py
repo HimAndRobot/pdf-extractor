@@ -13,8 +13,8 @@ import unicodedata
 from typing import Any
 
 
-CANONICAL_HEADERS = ["ITEM", "FORMULA UNID.", "METODO ESPECIF.", "ANALITICO", "OBSERVACOES"]
-CANONICAL_KEYS = ["item", "formula_unid", "metodo_especif", "analitico", "observacoes"]
+CANONICAL_HEADERS = ["ITEM", "UNIDADE", "ESPECIFICACOES", "RESULTADO", "OBSERVACOES"]
+CANONICAL_KEYS = ["item", "unidade", "especificacoes", "resultado", "observacoes"]
 
 
 def _plain(value: str) -> str:

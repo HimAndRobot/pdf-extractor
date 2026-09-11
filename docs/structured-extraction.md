@@ -6,9 +6,9 @@
 {
   "produto": "...",
   "lote": "...",
-  "data": "...",
-  "nota_fiscal": "...",
   "data_fabricacao": "...",
+  "nota_fiscal": "...",
+  "data_le": "...",
   "data_validade": "...",
   "embalagem": null,
   "quantidade": "...",
@@ -21,9 +21,9 @@
       "linhas": [
         {
           "item": "...",
-          "formula_unid": null,
-          "metodo_especif": null,
-          "analitico": null,
+          "unidade": null,
+          "especificacoes": null,
+          "resultado": null,
           "observacoes": null
         }
       ]
@@ -34,7 +34,7 @@
 
 Datas, unidades, intervalos, números e resultados permanecem strings; vazios são `null`. Cada linha contém todas as chaves da tabela, inclusive as colunas vazias. Em tabelas desconhecidas, exceto o layout canônico de cinco colunas, cabeçalhos viram chaves normalizadas (`nome do item` → `nome_do_item`); vazios usam `coluna_N` e colisões recebem sufixos (`item`, `item_2`).
 
-Os layouts canônicos são `especificacao`, `parametro`, `resultado` (3 colunas) e `item`, `formula_unid`, `metodo_especif`, `analitico`, `observacoes` (5 colunas). Na atribuição das cinco colunas, os valores são mapeados pela posição, nesta ordem; rótulos quebrados ou divergentes não mudam essa atribuição. Células ausentes permanecem `null`; o layout canônico de cinco colunas não usa nomes genéricos derivados dos rótulos. Para grades desalinhadas, a extração combina a geometria das células com os trechos de texto do cabeçalho, inclusive quando uma palavra atravessa uma separação; em tabelas sem bordas, as faixas são aprendidas da geometria do cabeçalho e verificadas contra as linhas de dados. Esses sinais podem ser insuficientes em PDFs achatados, digitalizados ou com sobreposição severa, portanto valide dados críticos.
+Os layouts canônicos são `especificacao`, `parametro`, `resultado` (3 colunas) e `item`, `unidade`, `especificacoes`, `resultado`, `observacoes` (5 colunas). Na atribuição das cinco colunas, os valores são mapeados pela posição, nesta ordem; rótulos quebrados ou divergentes não mudam essa atribuição. Células ausentes permanecem `null`; o layout canônico de cinco colunas não usa nomes genéricos derivados dos rótulos. Para grades desalinhadas, a extração combina a geometria das células com os trechos de texto do cabeçalho, inclusive quando uma palavra atravessa uma separação; em tabelas sem bordas, as faixas são aprendidas da geometria do cabeçalho e verificadas contra as linhas de dados. Esses sinais podem ser insuficientes em PDFs achatados, digitalizados ou com sobreposição severa, portanto valide dados críticos.
 
 ## Exemplo de três colunas (`examples/2556.pdf`)
 
@@ -42,7 +42,7 @@ Os layouts canônicos são `especificacao`, `parametro`, `resultado` (3 colunas)
 {
   "produto": "TD PREMIUM IND 20 KG",
   "lote": "2026/137744",
-  "data": "16/06/2026",
+  "data_le": "16/06/2026",
   "nota_fiscal": "77486",
   "data_fabricacao": "01/07/2026",
   "data_validade": "01/07/2028",
@@ -112,7 +112,7 @@ Os layouts canônicos são `especificacao`, `parametro`, `resultado` (3 colunas)
 {
   "produto": "REINI LAND 380 POS 05 L",
   "lote": "123/2026",
-  "data": "30/06/2026",
+  "data_le": "30/06/2026",
   "nota_fiscal": "77708",
   "data_fabricacao": "09/07/2026",
   "data_validade": "09/07/2028",
@@ -127,65 +127,65 @@ Os layouts canônicos são `especificacao`, `parametro`, `resultado` (3 colunas)
       "linhas": [
         {
           "item": "INSPEÇAO VISUAL",
-          "formula_unid": null,
-          "metodo_especif": "LIQUIDO DE ALTA VISCOSIDADE",
-          "analitico": "OK",
+          "unidade": null,
+          "especificacoes": "LIQUIDO DE ALTA VISCOSIDADE",
+          "resultado": "OK",
           "observacoes": null
         },
         {
           "item": "COR",
-          "formula_unid": null,
-          "metodo_especif": "VERDE ESCURO",
-          "analitico": "OK",
+          "unidade": null,
+          "especificacoes": "VERDE ESCURO",
+          "resultado": "OK",
           "observacoes": null
         },
         {
           "item": "TEMP. AMBIENTE",
-          "formula_unid": "°C",
-          "metodo_especif": "15 A 30",
-          "analitico": "20,5",
+          "unidade": "°C",
+          "especificacoes": "15 A 30",
+          "resultado": "20,5",
           "observacoes": null
         },
         {
           "item": "TEMP. PRODUTO",
-          "formula_unid": "°C",
-          "metodo_especif": "15 A 30",
-          "analitico": "21,8",
+          "unidade": "°C",
+          "especificacoes": "15 A 30",
+          "resultado": "21,8",
           "observacoes": null
         },
         {
           "item": "PONTO DE FUSAO",
-          "formula_unid": "°C",
-          "metodo_especif": "NÃO APLICÁVEL",
-          "analitico": "-",
+          "unidade": "°C",
+          "especificacoes": "NÃO APLICÁVEL",
+          "resultado": "-",
           "observacoes": null
         },
         {
           "item": "SOLUBILIDADE",
-          "formula_unid": "m/Vol",
-          "metodo_especif": "NÃO APLICÁVEL",
-          "analitico": "-",
+          "unidade": "m/Vol",
+          "especificacoes": "NÃO APLICÁVEL",
+          "resultado": "-",
           "observacoes": null
         },
         {
           "item": "PH",
-          "formula_unid": null,
-          "metodo_especif": "2,0 - 2,5",
-          "analitico": "2,5",
+          "unidade": null,
+          "especificacoes": "2,0 - 2,5",
+          "resultado": "2,5",
           "observacoes": null
         },
         {
           "item": "DENSIDADE",
-          "formula_unid": "g/ml",
-          "metodo_especif": "1,04 - 1,07",
-          "analitico": "1,05",
+          "unidade": "g/ml",
+          "especificacoes": "1,04 - 1,07",
+          "resultado": "1,05",
           "observacoes": null
         },
         {
           "item": "VISCOSIDADE",
-          "formula_unid": "s",
-          "metodo_especif": "NAO APLICÁVEL",
-          "analitico": "-",
+          "unidade": "s",
+          "especificacoes": "NAO APLICÁVEL",
+          "resultado": "-",
           "observacoes": null
         }
       ]

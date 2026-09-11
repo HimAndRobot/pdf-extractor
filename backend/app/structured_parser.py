@@ -13,16 +13,16 @@ from .structured_geometry import parse_borderless
 from .structured_generic_geometry import parse_generic_borderless
 from .structured_header_alignment import aligned_rows
 
-CANONICAL_FIELDS = ("produto", "lote", "data", "nota_fiscal", "data_fabricacao", "data_validade", "embalagem", "quantidade", "fornecedor", "transportadora", "cliente")
+CANONICAL_FIELDS = ("produto", "lote", "data_le", "nota_fiscal", "data_fabricacao", "data_validade", "embalagem", "quantidade", "fornecedor", "transportadora", "cliente")
 THREE = ["especificacao", "parametro", "resultado"]
 # Five-column reports use a stable physical layout.  Header text is frequently
 # split or mistranscribed, so these names intentionally do not come from it.
-FIVE = ["item", "formula_unid", "metodo_especif", "analitico", "observacoes"]
+FIVE = ["item", "unidade", "especificacoes", "resultado", "observacoes"]
 
 FIELD_ALIASES = {
-    "produto": "produto", "lote": "lote", "lote int": "lote", "lote interno": "lote", "data": "data", "nf": "nota_fiscal",
+    "produto": "produto", "lote": "lote", "lote int": "lote", "lote interno": "lote", "nf": "nota_fiscal",
     "notafiscal": "nota_fiscal", "n.f": "nota_fiscal", "n f": "nota_fiscal",
-    "data fab": "data_fabricacao", "data de fabricacao": "data_fabricacao", "datafabricacao": "data_fabricacao",
+    "data": "data_le", "data fab": "data_fabricacao", "data de fabricacao": "data_fabricacao", "datafabricacao": "data_fabricacao",
     "data validade": "data_validade", "data de validade": "data_validade", "datavalidade": "data_validade",
     "embalagem": "embalagem", "quantidade": "quantidade", "fornecedor": "fornecedor",
     "transportadora": "transportadora", "transportador": "transportadora", "cliente": "cliente",
@@ -111,6 +111,7 @@ def metadata(text: str) -> dict[str, str | None]:
 def header_kind(row: list[Any]) -> str | None:
     h = [re.sub(r"[^a-z]", "", fold(clean(x) or "")) for x in row]
     if len(h) == 5 and len(set(h)) == 5 and set(h) == {"item", "unidade", "especificacoes", "resultado", "observacao"}: return "five"
+    if len(h) == 5 and len(set(h)) == 5 and set(h) == {"item", "unidade", "especificacoes", "resultado", "observacoes"}: return "five"
     if len(h) == 5 and len(set(h)) == 5 and set(h) == {"item", "formulaunid", "metodoespecif", "analitico", "observacoes"}: return "five"
     if len(h) == 3 and len(set(h)) == 3 and set(h) == {"especificacao", "parametro", "resultado"}: return "three"
     return None

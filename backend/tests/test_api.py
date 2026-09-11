@@ -67,7 +67,7 @@ class ApiRegressionTests(unittest.TestCase):
         response = self.client.post("/api/extract/structured", files={"file": ("unknown.pdf", pdf_bytes("Documento sem cabeçalho de tabela"), "application/pdf")})
         self.assertEqual(response.status_code, 200)
         body = response.json()
-        self.assertEqual(set(body), {"produto", "lote", "data", "nota_fiscal", "data_fabricacao", "data_validade", "embalagem", "quantidade", "fornecedor", "transportadora", "cliente", "tabelas"})
+        self.assertEqual(set(body), {"produto", "lote", "data_le", "nota_fiscal", "data_fabricacao", "data_validade", "embalagem", "quantidade", "fornecedor", "transportadora", "cliente", "tabelas"})
         self.assertNotIn("fields", body)
         self.assertNotIn("warnings", body)
         self.assertEqual(body["tabelas"], [])

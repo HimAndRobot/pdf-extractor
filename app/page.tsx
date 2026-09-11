@@ -26,7 +26,7 @@ type ExtractedDocument = {
 };
 
 type StructuredDocument = {
-  produto: string | null; lote: string | null; data: string | null; nota_fiscal: string | null;
+  produto: string | null; lote: string | null; data_le: string | null; nota_fiscal: string | null;
   data_fabricacao: string | null; data_validade: string | null; embalagem: string | null;
   quantidade: string | null; fornecedor: string | null; transportadora: string | null; cliente: string | null;
   tabelas: { secao: string | null; linhas: Array<Record<string, string | null>> }[];
@@ -37,8 +37,8 @@ type ExtractionResult = ExtractedDocument | StructuredDocument;
 const FIELD_LABELS: Record<string, string> = {
   produto: "Produto",
   lote: "Lote",
-  data: "Data",
   nota_fiscal: "Nota fiscal",
+  data_le: "Data_Le",
   data_fabricacao: "Data de fabricação",
   data_validade: "Data de validade",
   embalagem: "Embalagem",
@@ -51,15 +51,14 @@ const FIELD_LABELS: Record<string, string> = {
 const COLUMN_LABELS: Record<string, string> = {
   especificacao: "Especificação",
   parametro: "Parâmetro",
-  resultado: "Resultado",
   item: "ITEM",
-  formula_unid: "FORMULA UNID.",
-  metodo_especif: "METODO ESPECIF.",
-  analitico: "ANALITICO",
+  unidade: "UNIDADE",
+  especificacoes: "ESPECIFICACOES",
+  resultado: "RESULTADO",
   observacoes: "OBSERVACOES",
 };
 
-const CANONICAL_FIVE_COLUMNS = ["item", "formula_unid", "metodo_especif", "analitico", "observacoes"];
+const CANONICAL_FIVE_COLUMNS = ["item", "unidade", "especificacoes", "resultado", "observacoes"];
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");

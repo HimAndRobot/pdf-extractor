@@ -9,7 +9,7 @@ from reportlab.pdfgen import canvas
 from app.structured_parser import parse
 
 
-KEYS = ["item", "formula_unid", "metodo_especif", "analitico", "observacoes"]
+KEYS = ["item", "unidade", "especificacoes", "resultado", "observacoes"]
 HEADERS = ["ITEM", "UNIDADE", "ESPECIFICACAO", "RESULTADO", "OBSERVACAO"]
 
 
@@ -66,16 +66,16 @@ class DisplacedGridTests(unittest.TestCase):
                 self.assertTrue(tables)
                 self.assertEqual(tables[0]["columns"], KEYS)
                 self.assertEqual(tables[0]["rows"], [
-                    {"item": "AMOSTRA-X", "formula_unid": None, "metodo_especif": "VISUAL", "analitico": "11", "observacoes": None},
-                    {"item": "MATERIAL-Y", "formula_unid": None, "metodo_especif": "FISICO", "analitico": "CONFORME", "observacoes": None},
+                    {"item": "AMOSTRA-X", "unidade": None, "especificacoes": "VISUAL", "resultado": "11", "observacoes": None},
+                    {"item": "MATERIAL-Y", "unidade": None, "especificacoes": "FISICO", "resultado": "CONFORME", "observacoes": None},
                 ])
 
     def test_normal_grid_does_not_shift_blank_trailing_cells(self):
         tables = parse(normal_grid_pdf())[3]
         self.assertTrue(tables)
         self.assertEqual(tables[0]["rows"], [
-            {"item": "COR", "formula_unid": "kg", "metodo_especif": "VISUAL", "analitico": None, "observacoes": None},
-            {"item": "ASPECTO", "formula_unid": "g", "metodo_especif": "FISICO", "analitico": None, "observacoes": None},
+            {"item": "COR", "unidade": "kg", "especificacoes": "VISUAL", "resultado": None, "observacoes": None},
+            {"item": "ASPECTO", "unidade": "g", "especificacoes": "FISICO", "resultado": None, "observacoes": None},
         ])
 
 

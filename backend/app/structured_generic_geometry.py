@@ -84,7 +84,7 @@ def parse_generic_borderless(page: Any) -> tuple[list[dict[str, Any]], list[str]
     neutral = evidence < 2
     # Five physical bands have a fixed contract, including unknown/broken
     # labels. Other widths retain the generic source labels.
-    columns = (["item", "formula_unid", "metodo_especif", "analitico", "observacoes"]
+    columns = (["item", "unidade", "especificacoes", "resultado", "observacoes"]
                if len(header) == 5 else
                ([re.sub(r"[^a-z0-9]+", "_", _fold(x)).strip("_") or f"coluna_{i + 1}" for i, x in enumerate(header)] if not neutral else [f"coluna_{i + 1}" for i in range(len(header))]))
     # Duplicate/empty labels remain addressable and do not overwrite each other.

@@ -140,8 +140,8 @@ class UnknownTableRegressionTests(unittest.TestCase):
         self.assertEqual(body["cliente"], "Fazenda Aurora")
         self.assertEqual(len(body["tabelas"][0]["linhas"]), 2)
         self.assertEqual(body["tabelas"][0]["linhas"][0], {
-            "item": "ASPECTO", "formula_unid": "LIQUIDO", "metodo_especif": "VISUAL",
-            "analitico": "CONFORME", "observacoes": "OK",
+            "item": "ASPECTO", "unidade": "LIQUIDO", "especificacoes": "VISUAL",
+            "resultado": "CONFORME", "observacoes": "OK",
         })
 
     def test_unknown_three_column_table_is_preserved_with_dynamic_columns(self):
