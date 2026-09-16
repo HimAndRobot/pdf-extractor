@@ -20,6 +20,7 @@ from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer
 from xml.sax.saxutils import escape
 from .pdf_processing import ProcessingPool
 from .pdf_workers import PdfProcessingError
+from .rtf_processing import is_rtf
 
 MAX_FILE_SIZE = 25 * 1024 * 1024
 CHUNK_SIZE = 1024 * 1024
@@ -84,19 +85,22 @@ async def read_limited(upload: UploadFile) -> bytes:
     while chunk := await upload.read(CHUNK_SIZE):
         data.extend(chunk)
         if len(data) > MAX_FILE_SIZE:
-            raise HTTPException(status_code=413, detail="O PDF ultrapassa o limite de 25 MB.")
+            raise HTTPException(status_code=413, detail="O arquivo ultrapassa o limite de 25 MB.")
     return bytes(data)
 
 
 async def process_upload(upload: UploadFile, kind: str) -> dict:
     filename = upload.filename or "documento.pdf"
-    if not filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=415, detail="Envie um arquivo no formato PDF.")
+    suffix = Path(filename).suffix.lower()
+    if suffix not in (".pdf", ".rtf"):
+        raise HTTPException(status_code=415, detail="Envie um arquivo no formato PDF ou RTF.")
 
     async def loader() -> bytes:
         raw = await read_limited(upload)
-        if not raw.startswith(b"%PDF-"):
-            raise HTTPException(status_code=415, detail="O arquivo enviado não é um PDF válido.")
+        is_pdf = raw.startswith(b"%PDF-")
+        is_rtf_content = is_rtf(raw)
+        if (suffix == ".pdf" and not is_pdf) or (suffix == ".rtf" and not is_rtf_content):
+            raise HTTPException(status_code=415, detail="A extensão do arquivo não corresponde ao conteúdo enviado.")
         return raw
 
     try:
@@ -127,7 +131,7 @@ def health() -> dict[str, str]:
 
 
 @app.post("/api/extract", response_model=ExtractedDocument)
-async def extract_pdf(file: Annotated[UploadFile, File(description="Arquivo PDF")]):
+async def extract_pdf(file: Annotated[UploadFile, File(description="Arquivo PDF ou RTF")]):
     filename = file.filename or "documento.pdf"
     result = await process_upload(file, "text")
     try:
@@ -146,7 +150,7 @@ async def extract_pdf(file: Annotated[UploadFile, File(description="Arquivo PDF"
 
 
 @app.post("/api/extract/structured", response_model=StructuredDocument)
-async def extract_structured(file: Annotated[UploadFile, File(description="Arquivo PDF")]):
+async def extract_structured(file: Annotated[UploadFile, File(description="Arquivo PDF ou RTF")]):
     filename = file.filename or "documento.pdf"
     result = await process_upload(file, "structured")
     page_count, text, fields, tables, warnings = result["page_count"], result["text"], result["fields"], result["tables"], result["warnings"]

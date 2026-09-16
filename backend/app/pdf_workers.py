@@ -1,6 +1,7 @@
 """Top-level process-pool worker functions (spawn safe and picklable)."""
 import io
 from pypdf import PdfReader
+from .rtf_processing import is_rtf
 
 
 class PdfProcessingError(Exception):
@@ -11,8 +12,21 @@ class PdfProcessingError(Exception):
 def process_pdf(kind: str, raw: bytes) -> dict:
     if kind not in ("text", "structured"):
         raise PdfProcessingError(500, "Modo de extração inválido.")
-    if not raw.startswith(b"%PDF-"):
-        raise PdfProcessingError(415, "O arquivo enviado não é um PDF válido.")
+    is_pdf = raw.startswith(b"%PDF-")
+    is_rtf_content = is_rtf(raw)
+    if not (is_pdf or is_rtf_content):
+        raise PdfProcessingError(415, "O arquivo enviado não é um PDF ou RTF válido.")
+    if is_rtf_content:
+        try:
+            from .rtf_processing import parse_rtf
+            page_count, text, fields, tables, warnings = parse_rtf(raw)
+            if kind == "structured":
+                return {"page_count": page_count, "fields": fields, "tables": tables, "warnings": warnings, "text": text}
+            return {"page_count": page_count, "text": text, "pages": [{"page": 1, "text": text}]}
+        except PdfProcessingError:
+            raise
+        except Exception as exc:
+            raise PdfProcessingError(422, "Não foi possível interpretar este RTF.") from exc
     try:
         reader = PdfReader(io.BytesIO(raw), strict=False)
         if reader.is_encrypted and reader.decrypt("") == 0:

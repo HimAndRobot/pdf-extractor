@@ -1,6 +1,6 @@
 # PDF Extractor
 
-Aplicação web para extrair texto selecionável de arquivos PDF e exportar o resultado em TXT, JSON ou PDF. A interface também oferece a leitura estruturada dos laudos de controle de qualidade em JSON. O contrato está documentado em [docs/structured-extraction.md](docs/structured-extraction.md).
+Aplicação web para extrair texto de arquivos PDF e RTF e exportar o resultado em TXT, JSON ou PDF. A interface também oferece a leitura estruturada dos laudos de controle de qualidade em JSON. O contrato está documentado em [docs/structured-extraction.md](docs/structured-extraction.md).
 
 ## Subir localmente com Docker
 
@@ -22,7 +22,7 @@ Abra `http://127.0.0.1:3000`. A API fica em `http://127.0.0.1:8000`.
 
 A rede externa `coolify` já existe nas instalações padrão. Os serviços também compartilham uma rede privada entre si.
 
-A extração é feita em memória e os arquivos não são persistidos pela aplicação. O framework pode usar armazenamento temporário durante o upload e o remove ao terminar a requisição. O limite por upload é de 25 MB. PDFs apenas com imagens exigem OCR e retornam uma mensagem explicativa.
+A extração é feita em memória e os arquivos não são persistidos pela aplicação. O framework pode usar armazenamento temporário durante o upload e o remove ao terminar a requisição. PDF e RTF têm limite de 25 MB por upload. PDFs apenas com imagens exigem OCR e retornam uma mensagem explicativa.
 
 ## Testar a extração estruturada
 

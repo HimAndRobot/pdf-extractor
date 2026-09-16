@@ -23,7 +23,7 @@ test("server-renders the PDF Extractor upload experience", async () => {
   assert.match(html, /<title>PDF Extractor<\/title>/i);
   assert.match(html, /LEITURA INTELIGENTE DE DOCUMENTOS/);
   assert.match(html, /Envie um documento e transforme todas as páginas em texto ou dados estruturados\./);
-  assert.match(html, /Arraste seu PDF para cá/);
+  assert.match(html, /Arraste seu PDF ou RTF para cá/);
   assert.match(html, /Laudo estruturado \(JSON\)/);
   assert.match(html, /Texto completo/);
   assert.match(html, /Modo de extração/);
@@ -49,7 +49,7 @@ test("keeps the production UI and API contract wired", async () => {
   assert.match(page, /tabelas/);
   assert.doesNotMatch(page, /structuredResult\.fields/);
   assert.doesNotMatch(page, /structuredResult\.warnings/);
-  assert.match(page, /accept="application\/pdf,\.pdf"/);
+  assert.match(page, /accept="application\/pdf,application\/rtf,text\/rtf,application\/octet-stream,\.pdf,\.rtf"/);
   assert.match(page, /readOnly aria-label="Texto extraído do PDF"/);
   assert.match(layout, /lang="pt-BR"/);
   assert.doesNotMatch(layout, /openGraph|twitter|\/og\.png/);

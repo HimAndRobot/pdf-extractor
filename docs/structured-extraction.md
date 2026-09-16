@@ -1,6 +1,6 @@
 # Extração estruturada de laudos
 
-`POST /api/extract/structured` recebe `multipart/form-data` no campo `file` e retorna JSON com os 11 campos do laudo na raiz e `tabelas`:
+`POST /api/extract/structured` recebe `multipart/form-data` no campo `file` e aceita arquivos PDF ou RTF de até 25 MB. Retorna JSON com os 11 campos do laudo na raiz e `tabelas`:
 
 ```json
 {
@@ -198,6 +198,7 @@ Os layouts canônicos são `especificacao`, `parametro`, `resultado` (3 colunas)
 
 ```bash
 curl --fail-with-body --show-error --max-time 120 -sS -X POST http://127.0.0.1:8000/api/extract/structured -F 'file=@examples/2556.pdf' | jq .
+curl --fail-with-body --show-error --max-time 120 -sS -X POST http://127.0.0.1:8000/api/extract/structured -F 'file=@examples/Laudo241.322.rtf' | jq .
 ```
 
 Em produção, use a URL pública após publicar a versão correspondente da API:
@@ -216,9 +217,9 @@ response.raise_for_status()
 print(response.json()["produto"])
 ```
 
-Swagger: [`/api/docs`](http://127.0.0.1:8000/api/docs). OpenAPI: [`/openapi.json`](http://127.0.0.1:8000/openapi.json). O limite é 25 MB e a extração ocorre em memória; o framework pode usar spool temporário durante o multipart e o remove ao fim da requisição. Arquivo inválido retorna `415`, upload excedido `413` e PDF protegido, ilegível ou sem texto selecionável `422`; digitalizados precisam de OCR.
+Swagger: [`/api/docs`](http://127.0.0.1:8000/api/docs). OpenAPI: [`/openapi.json`](http://127.0.0.1:8000/openapi.json). O limite é 25 MB e a extração ocorre em memória; o framework pode usar spool temporário durante o multipart e o remove ao fim da requisição. Arquivo inválido retorna `415`, upload excedido `413` e documento protegido, ilegível ou sem texto extraível `422`; PDFs digitalizados precisam de OCR.
 
-O protótipo anterior usava `fields.produto` e `tables[].rows`; agora são `produto` e `tabelas[].linhas`, e os metadados técnicos não fazem parte do JSON público. O endpoint textual `/api/extract` permanece separado.
+O protótipo anterior usava `fields.produto` e `tables[].rows`; agora são `produto` e `tabelas[].linhas`, e os metadados técnicos não fazem parte do JSON público. O endpoint textual `/api/extract` permanece separado e aceita PDF e RTF, retornando o documento lógico com `page_count` igual a 1 para RTF. As tabelas preservam os layouts canônicos de três e cinco colunas, com células vazias como `null`; RTF não é convertido por LibreOffice nem depende de runtime externo. O suporte RTF cobre a codificação padrão CP1252 e escapes Unicode `\u`; arquivos que declaram outra página de código ANSI podem retornar `422`.
 
 ## Concorrência
 

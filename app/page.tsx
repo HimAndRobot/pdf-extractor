@@ -91,8 +91,9 @@ export default function Home() {
   const chooseFile = (selected?: File) => {
     if (!selected) return;
     setError("");
-    if (selected.type !== "application/pdf" && !selected.name.toLowerCase().endsWith(".pdf")) {
-      setError("Escolha um arquivo no formato PDF.");
+    const filename = selected.name.toLowerCase();
+    if (!filename.endsWith(".pdf") && !filename.endsWith(".rtf")) {
+      setError("Escolha um arquivo no formato PDF ou RTF.");
       return;
     }
     if (selected.size > MAX_FILE_BYTES) {
@@ -121,7 +122,7 @@ export default function Home() {
       const endpoint = mode === "structured" ? "/api/extract/structured" : "/api/extract";
       const response = await fetch(`${API_URL}${endpoint}`, { method: "POST", body: form, signal: controller.signal });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Não foi possível ler este PDF.");
+      if (!response.ok) throw new Error(data.detail || "Não foi possível ler este documento.");
       if (!controller.signal.aborted) setResult(data);
     } catch (reason) {
       if (!(reason instanceof DOMException && reason.name === "AbortError")) {
@@ -163,7 +164,7 @@ export default function Home() {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `${file?.name.replace(/\.pdf$/i, "") || "resultado"}.json`;
+      anchor.download = `${file?.name.replace(/\.(pdf|rtf)$/i, "") || "resultado"}.json`;
       anchor.click();
       URL.revokeObjectURL(url);
       return;
@@ -182,7 +183,7 @@ export default function Home() {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `${file?.name.replace(/\.pdf$/i, "") || "resultado"}.${format}`;
+      anchor.download = `${file?.name.replace(/\.(pdf|rtf)$/i, "") || "resultado"}.${format}`;
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (reason) {
@@ -227,11 +228,11 @@ export default function Home() {
                 tabIndex={0}
                 onKeyDown={(event) => (event.key === "Enter" || event.key === " ") && inputRef.current?.click()}
               >
-                <input ref={inputRef} type="file" accept="application/pdf,.pdf" onChange={(event) => chooseFile(event.target.files?.[0])} hidden />
+                <input ref={inputRef} type="file" accept="application/pdf,application/rtf,text/rtf,.pdf,.rtf" onChange={(event) => chooseFile(event.target.files?.[0])} hidden />
                 <span className="upload-icon"><UploadCloud size={29} /></span>
-                <h2>Arraste seu PDF para cá</h2>
+                <h2>Arraste seu PDF ou RTF para cá</h2>
                 <p>ou <span>selecione um arquivo</span> no seu computador</p>
-                <small>PDF · MÁXIMO 25 MB</small>
+                <small>PDF OU RTF · MÁXIMO 25 MB</small>
               </div>
             ) : (
               <div className="selected-file">
